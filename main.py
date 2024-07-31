@@ -95,10 +95,12 @@ def on_click(message):
         cur.close()
         conn.close()
 
-        bot.send_message(message.chat.id, info)
+        bot.send_message(message.chat.id, info,reply_markup=return_to_menu_markup())
+        bot.register_next_step_handler(message, startfunc)
+
 
     elif message.text == 'Get Weather':
-        bot.send_message(message.chat.id, f"Enter City", parse_mode='html')
+        bot.send_message(message.chat.id, f"Enter City", parse_mode='html',reply_markup=types.ReplyKeyboardRemove())
         bot.register_next_step_handler(message, get_weather)
     
     elif message.text == 'Convert Currency':
@@ -128,17 +130,21 @@ def convert_amount(message):
         bot.send_message(message.chat.id, f"Enter a NUMBER", parse_mode='html')
         bot.register_next_step_handler(message,convert_amount)
         return
-
-    usd_cur = types.KeyboardButton('USD')
-    rub_cur = types.KeyboardButton('RUB')
-    eur_cur = types.KeyboardButton('EUR')
-
-    markup_converter = types.ReplyKeyboardMarkup()
-    markup_converter.row(usd_cur, rub_cur, eur_cur)
-
-    bot.send_message(message.chat.id, f"Choose currency to convert to", parse_mode='html', reply_markup=markup_converter)
     
-    bot.register_next_step_handler(message, convert_result)
+    if global_data_inst.get_amount() < 0:
+        bot.send_message(message.chat.id, f"Enter a POSITIVE NUMBER", parse_mode='html')
+        bot.register_next_step_handler(message,convert_amount)
+    else:
+        usd_cur = types.KeyboardButton('USD')
+        rub_cur = types.KeyboardButton('RUB')
+        eur_cur = types.KeyboardButton('EUR')
+
+        markup_converter = types.ReplyKeyboardMarkup()
+        markup_converter.row(usd_cur, rub_cur, eur_cur)
+
+        bot.send_message(message.chat.id, f"Choose currency to convert to", parse_mode='html', reply_markup=markup_converter)
+        
+        bot.register_next_step_handler(message, convert_result)
 
 def convert_result(message):
     global_data_inst.set_curr_two(message.text)
@@ -151,10 +157,11 @@ def get_weather(message):
         city = message.text.strip().lower()
         req = requests.get(f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WeatherAPI}&units=metric')
         data = json.loads(req.text)
-        bot.send_message(message.chat.id, f'Weather in {data["name"]}: Temp {data["main"]["temp"]}')
+        bot.send_message(message.chat.id, f'Weather in {data["name"]}: Temp {data["main"]["temp"]}',reply_markup=return_to_menu_markup())
+        bot.register_next_step_handler(message, startfunc)
     except Exception :
-        bot.send_message(message.chat.id, f"Weather is not available for now or City doesn't' exists")
-
+        bot.send_message(message.chat.id, f"Weather is not available for now or City doesn't' exists",reply_markup=return_to_menu_markup())
+        bot.register_next_step_handler(message, startfunc)
 
 def user_name(message):
     global_data_inst.set_name(message.text.strip())
@@ -174,7 +181,8 @@ def user_pass(message):
     cur.close()
     conn.close()
 
-    bot.send_message(message.chat.id, f"You've been registered", parse_mode='html')
+    bot.send_message(message.chat.id, f"You've been registered", parse_mode='html', reply_markup=return_to_menu_markup())
+    bot.register_next_step_handler(message, startfunc)
 
 def return_to_menu_markup():
     return_btn = types.KeyboardButton('Return to Menu')
