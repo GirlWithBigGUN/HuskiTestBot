@@ -8,7 +8,8 @@ from currency_converter import *
 
 bot = telebot.TeleBot('7344200411:AAGNh5ifR_lW9-4y_211ljFfkk4nikNcxm4')
 WeatherAPI = '748a2000c929016d6422d7e29307d7b9'
-conv = CurrencyConverter()
+conv = CurrencyConverter(fallback_on_wrong_date=True)
+
 
 class global_data():
     def __init__(self):
@@ -17,7 +18,6 @@ class global_data():
         self.curr_one = ''
         self.curr_two = ''
         self.amount = 0
-        none_markup = types.ReplyKeyboardMarkup()
 
     #setters
     def set_name(self,fname):
@@ -114,12 +114,11 @@ def on_click(message):
         
         bot.register_next_step_handler(message, convert_cur_step_one)
 
-
-    bot.register_next_step_handler(message, on_click)
+    return
 
 def convert_cur_step_one(message):
     global_data_inst.set_curr_one(message.text)
-    bot.send_message(message.chat.id, f"Enter amount to convert", parse_mode='html')
+    bot.send_message(message.chat.id, f"Enter amount to convert", parse_mode='html',reply_markup=types.ReplyKeyboardRemove())
     bot.register_next_step_handler(message,convert_amount)
 
 def convert_amount(message):
@@ -144,7 +143,8 @@ def convert_amount(message):
 def convert_result(message):
     global_data_inst.set_curr_two(message.text)
     converted_value = conv.convert(global_data_inst.get_amount(), global_data_inst.get_curr_one(), global_data_inst.get_curr_two())
-    bot.send_message(message.chat.id, f"{global_data_inst.get_amount()} {global_data_inst.get_curr_one()} equals to {round(converted_value,2)} {global_data_inst.get_curr_two()}")
+    bot.send_message(message.chat.id, f"{global_data_inst.get_amount()} {global_data_inst.get_curr_one()} equals to {round(converted_value,2)} {global_data_inst.get_curr_two()}",reply_markup=return_to_menu_markup())
+    bot.register_next_step_handler(message, startfunc)
 
 def get_weather(message):
     try:
@@ -153,7 +153,7 @@ def get_weather(message):
         data = json.loads(req.text)
         bot.send_message(message.chat.id, f'Weather in {data["name"]}: Temp {data["main"]["temp"]}')
     except Exception :
-        bot.send_message(message.chat.id, f'Weather is not available for now')
+        bot.send_message(message.chat.id, f"Weather is not available for now or City doesn't' exists")
 
 
 def user_name(message):
@@ -175,6 +175,17 @@ def user_pass(message):
     conn.close()
 
     bot.send_message(message.chat.id, f"You've been registered", parse_mode='html')
+
+def return_to_menu_markup():
+    return_btn = types.KeyboardButton('Return to Menu')
+
+    return_markup = types.ReplyKeyboardMarkup()
+    return_markup.row(return_btn)
+
+    # bot.send_message(message.chat.id, f" ", parse_mode='html', reply_markup=return_markup)
     
+    # bot.register_next_step_handler(message, convert_result)
+
+    return return_markup
 
 bot.polling(non_stop=True)
